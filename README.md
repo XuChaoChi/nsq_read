@@ -4,4 +4,7 @@
 
 #### 阅读记录
 
-- [2019/09/09] [日志模块lg]("https://github.com/XuChaoChi/nsq_read/tree/master/internal/lg")
+<ul>
+<li><strong>[2019/09/09-日志模块lg]</strong>: https://github.com/XuChaoChi/nsq_read/tree/master/internal/lg
+</ul>
+
