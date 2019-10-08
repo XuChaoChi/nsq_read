@@ -11,10 +11,12 @@ import (
 	"github.com/nsqio/nsq/internal/lg"
 )
 
+//装饰器使用的函数
 type Decorator func(APIHandler) APIHandler
 
 type APIHandler func(http.ResponseWriter, *http.Request, httprouter.Params) (interface{}, error)
 
+//记录错误的结构体
 type Err struct {
 	Code int
 	Text string
@@ -24,6 +26,7 @@ func (e Err) Error() string {
 	return e.Text
 }
 
+//版本检测
 func acceptVersion(req *http.Request) int {
 	if req.Header.Get("accept") == "application/vnd.nsq; version=1.0" {
 		return 1

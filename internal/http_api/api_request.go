@@ -14,7 +14,7 @@ import (
 )
 
 // A custom http.Transport with support for deadline timeouts
-//Http客户端支持超时 Transport不是很理解是什么意思
+//Http客户端支持超时（连接超时，请求超时）
 func NewDeadlineTransport(connectTimeout time.Duration, requestTimeout time.Duration) *http.Transport {
 	// arbitrary values copied from http.DefaultTransport
 	transport := &http.Transport{
@@ -31,10 +31,12 @@ func NewDeadlineTransport(connectTimeout time.Duration, requestTimeout time.Dura
 	return transport
 }
 
+//包装的http客户端结构
 type Client struct {
 	c *http.Client
 }
 
+//创建一个新的客户端
 func NewClient(tlsConfig *tls.Config, connectTimeout time.Duration, requestTimeout time.Duration) *Client {
 	transport := NewDeadlineTransport(connectTimeout, requestTimeout)
 	transport.TLSClientConfig = tlsConfig
@@ -48,8 +50,8 @@ func NewClient(tlsConfig *tls.Config, connectTimeout time.Duration, requestTimeo
 
 // GETV1 is a helper function to perform a V1 HTTP request
 // and parse our NSQ daemon's expected response format, with deadlines.
-//GETV1是V1版本Http请求的解析函数
-//并且格式化返回函数，以及超时控制
+//GETV1是V1版本的http get方法
+//将get的内容解析成json
 func (c *Client) GETV1(endpoint string, v interface{}) error {
 retry:
 	//新建一个Get请求
@@ -59,12 +61,11 @@ retry:
 	}
 
 	req.Header.Add("Accept", "application/vnd.nsq; version=1.0")
-	//调用client的接收逻辑
 	resp, err := c.c.Do(req)
 	if err != nil {
 		return err
 	}
-	//获取返回协议body中的内容
+	//获取返回协请求body中的内容
 	body, err := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
@@ -72,12 +73,12 @@ retry:
 	}
 	//判断请求状态是否是成功
 	if resp.StatusCode != 200 {
+		//如果是403尝试下将http地转换成https尝试下
 		if resp.StatusCode == 403 && !strings.HasPrefix(endpoint, "https") {
-			//403并且请求地址是https的
 			endpoint, err = httpsEndpoint(endpoint, body)
 			if err != nil {
 				return err
-			} //改变地址后重新尝试
+			}
 			goto retry
 		}
 		return fmt.Errorf("got response %s %q", resp.Status, body)
@@ -93,6 +94,8 @@ retry:
 
 // PostV1 is a helper function to perform a V1 HTTP request
 // and parse our NSQ daemon's expected response format, with deadlines.
+//GETV1是V1版本的http post方法
+//将get的内容解析成json
 func (c *Client) POSTV1(endpoint string) error {
 retry:
 	req, err := http.NewRequest("POST", endpoint, nil)
@@ -113,6 +116,7 @@ retry:
 		return err
 	}
 	if resp.StatusCode != 200 {
+		//如果是403尝试下将http地转换成https尝试下
 		if resp.StatusCode == 403 && !strings.HasPrefix(endpoint, "https") {
 			endpoint, err = httpsEndpoint(endpoint, body)
 			if err != nil {
@@ -126,7 +130,7 @@ retry:
 	return nil
 }
 
-//返回最终的https地址和端口https://xxx.xxx.xxx.xxx:xx
+//将请求地址转换为https
 func httpsEndpoint(endpoint string, body []byte) (string, error) {
 	var forbiddenResp struct {
 		HTTPSPort int `json:"https_port"`
