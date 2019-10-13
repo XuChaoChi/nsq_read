@@ -7,11 +7,14 @@ import (
 	"net/url"
 )
 
+//实现了getter接口
+//通过解析url中的参数
 type ReqParams struct {
 	url.Values
 	Body []byte
 }
 
+//解析request得到ReqParams
 func NewReqParams(req *http.Request) (*ReqParams, error) {
 	reqParams, err := url.ParseQuery(req.URL.RawQuery)
 	if err != nil {
