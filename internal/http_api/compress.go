@@ -40,7 +40,7 @@ func (w *compressResponseWriter) Write(b []byte) (int, error) {
 
 // CompressHandler gzip compresses HTTP responses for clients that support it
 // via the 'Accept-Encoding' header.
-//使用Accept-Encoding请求头时使用gzip压缩
+//如果客户端请求支持Accept-Encoding gzip 则压缩responses
 func CompressHandler(h http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 	L:
@@ -52,7 +52,7 @@ func CompressHandler(h http.Handler) http.Handler {
 
 				gw := gzip.NewWriter(w)
 				defer gw.Close()
-
+				//使用hijack接管http
 				h, hok := w.(http.Hijacker)
 				if !hok { /* w is not Hijacker... oh well... */
 					h = nil
@@ -86,7 +86,7 @@ func CompressHandler(h http.Handler) http.Handler {
 				break L
 			}
 		}
-
+		//进行路由逻辑
 		h.ServeHTTP(w, r)
 	})
 }

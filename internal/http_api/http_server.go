@@ -20,7 +20,7 @@ func (l logWriter) Write(p []byte) (int, error) {
 }
 
 //Param1监听对象
-//Param2反射函数
+//Param2路由
 //Param3协议类型
 //Param4日志函数
 func Serve(listener net.Listener, handler http.Handler, proto string, logf lg.AppLogFunc) error {
