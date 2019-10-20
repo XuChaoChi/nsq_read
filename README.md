@@ -9,5 +9,7 @@
 <li><strong>[2019/09/12-日志模块lg-博客]</strong>: https://www.cxc233.com/blog/8375917.html
 <li><strong>[2019/10/17-http模块http_api]</strong>: https://github.com/XuChaoChi/nsq_read/tree/master/internal/http_api
 <li><strong>[2019/10/17-http模块http_api-博客]</strong>: https://www.cxc233.com/blog/67a7f7c7.html
+<li><strong>[2019/10/20-app模块app]</strong>: https://github.com/XuChaoChi/nsq_read/tree/master/internal/app
+<li><strong>[2019/10/20-app模块app-博客]</strong>: https://www.cxc233.com/blog/574dee44.html
 </ul>
 
