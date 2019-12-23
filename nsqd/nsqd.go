@@ -282,22 +282,25 @@ func (n *NSQD) Main() error {
 
 type meta struct {
 	Topics []struct {
-		Name     string `json:"name"`
-		Paused   bool   `json:"paused"`
+		Name     string `json:"name"`   //topic名字
+		Paused   bool   `json:"paused"` //topic是否暂停
 		Channels []struct {
-			Name   string `json:"name"`
-			Paused bool   `json:"paused"`
-		} `json:"channels"`
-	} `json:"topics"`
+			Name   string `json:"name"`   //channel的名字
+			Paused bool   `json:"paused"` //channel是否暂停
+		} `json:"channels"` //topic下面channel的数组
+	} `json:"topics"` //topic的数组
 }
 
+//加载配置文件
 func newMetadataFile(opts *Options) string {
+	//生成路径"opts.DataPath/nsqd.dat"
 	return path.Join(opts.DataPath, "nsqd.dat")
 }
 
 func readOrEmpty(fn string) ([]byte, error) {
 	data, err := ioutil.ReadFile(fn)
 	if err != nil {
+		//文件石否存在
 		if !os.IsNotExist(err) {
 			return nil, fmt.Errorf("failed to read metadata from %s - %s", fn, err)
 		}
@@ -323,8 +326,9 @@ func (n *NSQD) LoadMetadata() error {
 	atomic.StoreInt32(&n.isLoading, 1)
 	defer atomic.StoreInt32(&n.isLoading, 0)
 
+	//获取文件名
 	fn := newMetadataFile(n.getOpts())
-
+	//读取文件
 	data, err := readOrEmpty(fn)
 	if err != nil {
 		return err
@@ -333,12 +337,15 @@ func (n *NSQD) LoadMetadata() error {
 		return nil // fresh start
 	}
 
+	//格式
+	//{"topics":[{"channels":[{"name":"test-ch2","paused":false},{"name":"test-ch1","paused":false}],"name":"test","paused":false}],"version":"1.1.1-alpha"}
 	var m meta
 	err = json.Unmarshal(data, &m)
 	if err != nil {
 		return fmt.Errorf("failed to parse metadata in %s - %s", fn, err)
 	}
 
+	//检测topic名字的合法性
 	for _, t := range m.Topics {
 		if !protocol.IsValidTopicName(t.Name) {
 			n.logf(LOG_WARN, "skipping creation of invalid topic %s", t.Name)
@@ -348,16 +355,19 @@ func (n *NSQD) LoadMetadata() error {
 		if t.Paused {
 			topic.Pause()
 		}
+		//检测channel
 		for _, c := range t.Channels {
 			if !protocol.IsValidChannelName(c.Name) {
 				n.logf(LOG_WARN, "skipping creation of invalid channel %s", c.Name)
 				continue
 			}
 			channel := topic.GetChannel(c.Name)
+			//是否暂停channel
 			if c.Paused {
 				channel.Pause()
 			}
 		}
+		//开启topic
 		topic.Start()
 	}
 	return nil

@@ -43,14 +43,15 @@ func (p *program) Start() error {
 
 	flagSet := nsqdFlagSet(opts)
 	flagSet.Parse(os.Args[1:])
-
+	//初始化随机种子
 	rand.Seed(time.Now().UTC().UnixNano())
-
+	//输出当前的版本号
 	if flagSet.Lookup("version").Value.(flag.Getter).Get().(bool) {
 		fmt.Println(version.String("nsqd"))
 		os.Exit(0)
 	}
 
+	//加载配置文件
 	var cfg config
 	configFile := flagSet.Lookup("config").Value.String()
 	if configFile != "" {
@@ -59,9 +60,12 @@ func (p *program) Start() error {
 			logFatal("failed to load config file %s - %s", configFile, err)
 		}
 	}
+	//验证配置是否包含必须的字段
 	cfg.Validate()
 
+	//将flag的值转换到结构体中
 	options.Resolve(opts, flagSet, cfg)
+	//实例化nsqd对象
 	nsqd, err := nsqd.New(opts)
 	if err != nil {
 		logFatal("failed to instantiate nsqd - %s", err)
