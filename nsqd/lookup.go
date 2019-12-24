@@ -181,6 +181,7 @@ func in(s string, lst []string) bool {
 	return false
 }
 
+//获取lookupd的地址
 func (n *NSQD) lookupdHTTPAddrs() []string {
 	var lookupHTTPAddrs []string
 	lookupPeers := n.lookupPeers.Load()

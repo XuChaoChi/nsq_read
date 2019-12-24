@@ -478,9 +478,11 @@ func (n *NSQD) GetTopic(topicName string) *Topic {
 		n.Unlock()
 		return t
 	}
+	//删除topic的回调函数
 	deleteCallback := func(t *Topic) {
 		n.DeleteExistingTopic(t.name)
 	}
+	//创建一个新的topic
 	t = NewTopic(topicName, &context{n}, deleteCallback)
 	n.topicMap[topicName] = t
 
@@ -488,8 +490,10 @@ func (n *NSQD) GetTopic(topicName string) *Topic {
 
 	n.logf(LOG_INFO, "TOPIC(%s): created", t.name)
 	// topic is created but messagePump not yet started
+	//只是创建了topic但是消息队列没有开启
 
 	// if loading metadata at startup, no lookupd connections yet, topic started after load
+	//如果在进程启动的时候没有lookupd连接，topic在后面加载
 	if atomic.LoadInt32(&n.isLoading) == 1 {
 		return t
 	}
@@ -518,6 +522,7 @@ func (n *NSQD) GetTopic(topicName string) *Topic {
 }
 
 // GetExistingTopic gets a topic only if it exists
+//获取存在的topic
 func (n *NSQD) GetExistingTopic(topicName string) (*Topic, error) {
 	n.RLock()
 	defer n.RUnlock()
