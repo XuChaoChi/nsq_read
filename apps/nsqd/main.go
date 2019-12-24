@@ -72,6 +72,7 @@ func (p *program) Start() error {
 	}
 	p.nsqd = nsqd
 
+	//加载topic和channel的信息
 	err = p.nsqd.LoadMetadata()
 	if err != nil {
 		logFatal("failed to load metadata - %s", err)
