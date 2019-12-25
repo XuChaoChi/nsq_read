@@ -33,6 +33,7 @@ type protocolV2 struct {
 	ctx *context
 }
 
+//消息循环，分发协议
 func (p *protocolV2) IOLoop(conn net.Conn) error {
 	var err error
 	var line []byte

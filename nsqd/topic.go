@@ -453,6 +453,7 @@ func (t *Topic) AggregateChannelE2eProcessingLatency() *quantile.Quantile {
 	return latencyStream
 }
 
+//停止topic
 func (t *Topic) Pause() error {
 	return t.doPause(true)
 }
@@ -461,6 +462,7 @@ func (t *Topic) UnPause() error {
 	return t.doPause(false)
 }
 
+//是否暂停
 func (t *Topic) doPause(pause bool) error {
 	if pause {
 		atomic.StoreInt32(&t.paused, 1)

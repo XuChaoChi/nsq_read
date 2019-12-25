@@ -72,11 +72,13 @@ func (p *program) Start() error {
 	}
 	p.nsqd = nsqd
 
-	//加载topic和channel的信息
+	//加载元数据(topic和channel的信息)
+	//关于元数据的解释https://www.zhihu.com/question/20679872
 	err = p.nsqd.LoadMetadata()
 	if err != nil {
 		logFatal("failed to load metadata - %s", err)
 	}
+	//持久化元数据
 	err = p.nsqd.PersistMetadata()
 	if err != nil {
 		logFatal("failed to persist metadata - %s", err)

@@ -43,6 +43,7 @@ type Client interface {
 
 type NSQD struct {
 	// 64bit atomic vars need to be first for proper alignment on 32bit platforms
+	//客户端连接的id，每连接一个+1
 	clientIDSequence int64
 
 	sync.RWMutex
@@ -246,6 +247,7 @@ func (n *NSQD) Main() error {
 
 	exitCh := make(chan error)
 	var once sync.Once
+	//出错时调用退出的匿名函数
 	exitFunc := func(err error) {
 		once.Do(func() {
 			if err != nil {
@@ -256,13 +258,16 @@ func (n *NSQD) Main() error {
 	}
 
 	tcpServer := &tcpServer{ctx: ctx}
+	//监听tcp
 	n.waitGroup.Wrap(func() {
 		exitFunc(protocol.TCPServer(n.tcpListener, tcpServer, n.logf))
 	})
+	//监听http
 	httpServer := newHTTPServer(ctx, false, n.getOpts().TLSRequired == TLSRequired)
 	n.waitGroup.Wrap(func() {
 		exitFunc(http_api.Serve(n.httpListener, httpServer, "HTTP", n.logf))
 	})
+	//监听https
 	if n.tlsConfig != nil && n.getOpts().HTTPSAddress != "" {
 		httpsServer := newHTTPServer(ctx, true, true)
 		n.waitGroup.Wrap(func() {
@@ -308,6 +313,8 @@ func readOrEmpty(fn string) ([]byte, error) {
 	return data, nil
 }
 
+//同步写入数据到文件，防止文件缓存在刷入之前系统崩溃而丢失数据
+//说明：https://blog.csdn.net/sishuiliunian0710/article/details/37739385
 func writeSyncFile(fn string, data []byte) error {
 	f, err := os.OpenFile(fn, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -316,12 +323,14 @@ func writeSyncFile(fn string, data []byte) error {
 
 	_, err = f.Write(data)
 	if err == nil {
+		//同步数据
 		err = f.Sync()
 	}
 	f.Close()
 	return err
 }
 
+//加载元数据
 func (n *NSQD) LoadMetadata() error {
 	atomic.StoreInt32(&n.isLoading, 1)
 	defer atomic.StoreInt32(&n.isLoading, 0)
@@ -373,6 +382,7 @@ func (n *NSQD) LoadMetadata() error {
 	return nil
 }
 
+//持久化元数据，理论上只修改了version
 func (n *NSQD) PersistMetadata() error {
 	// persist metadata about what topics/channels we have, across restarts
 	fileName := newMetadataFile(n.getOpts())
@@ -414,12 +424,15 @@ func (n *NSQD) PersistMetadata() error {
 		return err
 	}
 
+	//创建随机文件名
 	tmpFileName := fmt.Sprintf("%s.%d.tmp", fileName, rand.Int())
 
+	//写入
 	err = writeSyncFile(tmpFileName, data)
 	if err != nil {
 		return err
 	}
+	//写入成功再重命名回来，防止写失败导致原来的元数据损坏
 	err = os.Rename(tmpFileName, fileName)
 	if err != nil {
 		return err
@@ -430,14 +443,17 @@ func (n *NSQD) PersistMetadata() error {
 }
 
 func (n *NSQD) Exit() {
+	//关闭tcp监听
 	if n.tcpListener != nil {
 		n.tcpListener.Close()
 	}
 
+	//关闭http监听
 	if n.httpListener != nil {
 		n.httpListener.Close()
 	}
 
+	//关闭https监听
 	if n.httpsListener != nil {
 		n.httpsListener.Close()
 	}
@@ -454,7 +470,9 @@ func (n *NSQD) Exit() {
 	n.Unlock()
 
 	n.logf(LOG_INFO, "NSQ: stopping subsystems")
+	//发送退出信号
 	close(n.exitChan)
+	//等待所有携程退出
 	n.waitGroup.Wait()
 	n.dl.Unlock()
 	n.logf(LOG_INFO, "NSQ: bye")
@@ -493,7 +511,7 @@ func (n *NSQD) GetTopic(topicName string) *Topic {
 	//只是创建了topic但是消息队列没有开启
 
 	// if loading metadata at startup, no lookupd connections yet, topic started after load
-	//如果在进程启动的时候没有lookupd连接，topic在后面加载
+	//如果在进程启动的时候没有lookupd连接，topic在nsqd和lookupd连接后加载
 	if atomic.LoadInt32(&n.isLoading) == 1 {
 		return t
 	}

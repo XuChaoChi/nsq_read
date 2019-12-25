@@ -11,6 +11,7 @@ import (
 	"github.com/nsqio/nsq/nsqd"
 )
 
+//TLS请求版本
 type tlsRequiredOption int
 
 func (t *tlsRequiredOption) Set(s string) error {
@@ -20,6 +21,7 @@ func (t *tlsRequiredOption) Set(s string) error {
 		return nil
 	}
 	required, err := strconv.ParseBool(s)
+	//是否需要TLS
 	if required {
 		*t = nsqd.TLSRequired
 	} else {
@@ -28,6 +30,7 @@ func (t *tlsRequiredOption) Set(s string) error {
 	return err
 }
 
+//获取TLS设置
 func (t *tlsRequiredOption) Get() interface{} { return int(*t) }
 
 func (t *tlsRequiredOption) String() string {
@@ -66,6 +69,7 @@ func (t *tlsMinVersionOption) String() string {
 type config map[string]interface{}
 
 // Validate settings in the config file, and fatal on errors
+// 验证配置文件的有效性（只有tls相关的2个字段）
 func (cfg config) Validate() {
 	// special validation/translation
 	if v, exists := cfg["tls_required"]; exists {
