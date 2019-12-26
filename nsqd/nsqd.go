@@ -258,16 +258,16 @@ func (n *NSQD) Main() error {
 	}
 
 	tcpServer := &tcpServer{ctx: ctx}
-	//监听tcp
+	//监听tcp(client生成和消费数据)
 	n.waitGroup.Wrap(func() {
 		exitFunc(protocol.TCPServer(n.tcpListener, tcpServer, n.logf))
 	})
-	//监听http
+	//监听http(client生成和消费数据)
 	httpServer := newHTTPServer(ctx, false, n.getOpts().TLSRequired == TLSRequired)
 	n.waitGroup.Wrap(func() {
 		exitFunc(http_api.Serve(n.httpListener, httpServer, "HTTP", n.logf))
 	})
-	//监听https
+	//监听https(client生成和消费数据)
 	if n.tlsConfig != nil && n.getOpts().HTTPSAddress != "" {
 		httpsServer := newHTTPServer(ctx, true, true)
 		n.waitGroup.Wrap(func() {
@@ -281,6 +281,7 @@ func (n *NSQD) Main() error {
 		n.waitGroup.Wrap(n.statsdLoop)
 	}
 
+	//阻塞等待退出信号
 	err := <-exitCh
 	return err
 }
@@ -601,6 +602,7 @@ func (n *NSQD) Notify(v interface{}) {
 }
 
 // channels returns a flat slice of all channels in all topics
+// 返回所有topic中所有的channel
 func (n *NSQD) channels() []*Channel {
 	var channels []*Channel
 	n.RLock()

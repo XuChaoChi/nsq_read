@@ -14,19 +14,19 @@ import (
 
 type Options struct {
 	// basic options
-	ID        int64       `flag:"node-id" cfg:"id"`
-	LogLevel  lg.LogLevel `flag:"log-level"`
-	LogPrefix string      `flag:"log-prefix"`
+	ID        int64       `flag:"node-id" cfg:"id"` //节点id
+	LogLevel  lg.LogLevel `flag:"log-level"`        //日志等级
+	LogPrefix string      `flag:"log-prefix"`       //日志前缀
 	Logger    Logger
 
-	TCPAddress               string        `flag:"tcp-address"`
-	HTTPAddress              string        `flag:"http-address"`
-	HTTPSAddress             string        `flag:"https-address"`
-	BroadcastAddress         string        `flag:"broadcast-address"`
-	NSQLookupdTCPAddresses   []string      `flag:"lookupd-tcp-address" cfg:"nsqlookupd_tcp_addresses"`
+	TCPAddress               string        `flag:"tcp-address"`                                        //tcp地址
+	HTTPAddress              string        `flag:"http-address"`                                       //http地址
+	HTTPSAddress             string        `flag:"https-address"`                                      //https地址
+	BroadcastAddress         string        `flag:"broadcast-address"`                                  //广播地址
+	NSQLookupdTCPAddresses   []string      `flag:"lookupd-tcp-address" cfg:"nsqlookupd_tcp_addresses"` //nsqlookupd的地址
 	AuthHTTPAddresses        []string      `flag:"auth-http-address" cfg:"auth_http_addresses"`
-	HTTPClientConnectTimeout time.Duration `flag:"http-client-connect-timeout" cfg:"http_client_connect_timeout"`
-	HTTPClientRequestTimeout time.Duration `flag:"http-client-request-timeout" cfg:"http_client_request_timeout"`
+	HTTPClientConnectTimeout time.Duration `flag:"http-client-connect-timeout" cfg:"http_client_connect_timeout"` //http连接时间
+	HTTPClientRequestTimeout time.Duration `flag:"http-client-request-timeout" cfg:"http_client_request_timeout"` //http的请求时间
 
 	// diskqueue options
 	DataPath        string        `flag:"data-path"`
@@ -83,7 +83,9 @@ type Options struct {
 	SnappyEnabled   bool `flag:"snappy"`
 }
 
+//实例化新的配置类
 func NewOptions() *Options {
+	//获取当前的ip
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Fatal(err)
@@ -91,6 +93,7 @@ func NewOptions() *Options {
 
 	h := md5.New()
 	io.WriteString(h, hostname)
+	//求节点id
 	defaultID := int64(crc32.ChecksumIEEE(h.Sum(nil)) % 1024)
 
 	return &Options{
