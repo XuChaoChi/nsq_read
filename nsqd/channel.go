@@ -35,18 +35,25 @@ type Consumer interface {
 // messages, timeouts, requeuing, etc.
 type Channel struct {
 	// 64bit atomic vars need to be first for proper alignment on 32bit platforms
+	//重推数量
 	requeueCount uint64
+	//消息数
 	messageCount uint64
+	//超时数
 	timeoutCount uint64
 
 	sync.RWMutex
 
+	//所在topic的名字
 	topicName string
+
+	//此channel名字
 	name      string
+	//进程启动的上下问
 	ctx       *context
 
 	backend BackendQueue
-
+	//消息队列
 	memoryMsgChan chan *Message
 	exitFlag      int32
 	exitMutex     sync.RWMutex

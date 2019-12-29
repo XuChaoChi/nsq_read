@@ -680,11 +680,17 @@ func (n *NSQD) queueScanWorker(workCh chan *Channel, responseCh chan bool, close
 // If QueueScanDirtyPercent (default: 25%) of the selected channels were dirty,
 // the loop continues without sleep.
 func (n *NSQD) queueScanLoop() {
+	//默认20
+	//使用的channel
 	workCh := make(chan *Channel, n.getOpts().QueueScanSelectionCount)
+	//已经接收的channel
 	responseCh := make(chan bool, n.getOpts().QueueScanSelectionCount)
+	//接收关闭的channel
 	closeCh := make(chan int)
 
+	//默认100ms
 	workTicker := time.NewTicker(n.getOpts().QueueScanInterval)
+	//默认5s
 	refreshTicker := time.NewTicker(n.getOpts().QueueScanRefreshInterval)
 
 	channels := n.channels()
@@ -720,7 +726,8 @@ func (n *NSQD) queueScanLoop() {
 				numDirty++
 			}
 		}
-
+		
+		//0.25
 		if float64(numDirty)/float64(num) > n.getOpts().QueueScanDirtyPercent {
 			goto loop
 		}
