@@ -16,10 +16,10 @@ const (
 type MessageID [MsgIDLength]byte
 
 type Message struct {
-	ID        MessageID
-	Body      []byte
-	Timestamp int64
-	Attempts  uint16
+	ID        MessageID //id
+	Body      []byte    //内容
+	Timestamp int64     //创建时间戳
+	Attempts  uint16    //重试次数
 
 	// for in-flight handling
 	deliveryTS time.Time
@@ -29,6 +29,7 @@ type Message struct {
 	deferred   time.Duration
 }
 
+//message的实例方法
 func NewMessage(id MessageID, body []byte) *Message {
 	return &Message{
 		ID:        id,
@@ -37,8 +38,10 @@ func NewMessage(id MessageID, body []byte) *Message {
 	}
 }
 
+//从数据流读取协议内容
 func (m *Message) WriteTo(w io.Writer) (int64, error) {
 	var buf [10]byte
+	//写入的总长度
 	var total int64
 
 	binary.BigEndian.PutUint64(buf[:8], uint64(m.Timestamp))
@@ -78,6 +81,7 @@ func (m *Message) WriteTo(w io.Writer) (int64, error) {
 func decodeMessage(b []byte) (*Message, error) {
 	var msg Message
 
+	//不够最小的包长
 	if len(b) < minValidMsgLength {
 		return nil, fmt.Errorf("invalid message buffer size (%d)", len(b))
 	}
@@ -90,6 +94,7 @@ func decodeMessage(b []byte) (*Message, error) {
 	return &msg, nil
 }
 
+//写数据到本地
 func writeMessageToBackend(buf *bytes.Buffer, msg *Message, bq BackendQueue) error {
 	buf.Reset()
 	_, err := msg.WriteTo(buf)

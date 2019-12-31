@@ -6,6 +6,7 @@ func newInFlightPqueue(capacity int) inFlightPqueue {
 	return make(inFlightPqueue, 0, capacity)
 }
 
+//交换位置和序号
 func (pq inFlightPqueue) Swap(i, j int) {
 	pq[i], pq[j] = pq[j], pq[i]
 	pq[i].index = i
@@ -15,6 +16,7 @@ func (pq inFlightPqueue) Swap(i, j int) {
 func (pq *inFlightPqueue) Push(x *Message) {
 	n := len(*pq)
 	c := cap(*pq)
+	//不够时的时候扩容2倍
 	if n+1 > c {
 		npq := make(inFlightPqueue, n, c*2)
 		copy(npq, *pq)
@@ -69,6 +71,7 @@ func (pq *inFlightPqueue) PeekAndShift(max int64) (*Message, int64) {
 	return x, 0
 }
 
+//对比父节点
 func (pq *inFlightPqueue) up(j int) {
 	for {
 		i := (j - 1) / 2 // parent
