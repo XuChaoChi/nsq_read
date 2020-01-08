@@ -62,27 +62,27 @@ type diskQueue struct {
 	// run-time state (also persisted to disk)
 	readPos      int64 //当前文件读取的位置
 	writePos     int64 //当前文件写入的位置
-	readFileNum  int64
-	writeFileNum int64 //写入文件的数量
-	depth        int64 //当前消息的数量
+	readFileNum  int64 //正在读取的文件索引
+	writeFileNum int64 //正在写入的文件索引
+	depth        int64 //当前消息的数量(队列的大小)
 
 	sync.RWMutex
 
 	// instantiation time metadata
 	name            string
 	dataPath        string
-	maxBytesPerFile int64 // currently this cannot change once created
-	minMsgSize      int32
-	maxMsgSize      int32
-	syncEvery       int64         // number of writes per fsync
+	maxBytesPerFile int64         // currently this cannot change once created
+	minMsgSize      int32         //消息最小值
+	maxMsgSize      int32         //消息最大值
+	syncEvery       int64         // number of writes per fsync  写入多少条数据后同步
 	syncTimeout     time.Duration // duration of time per fsync
 	exitFlag        int32
-	needSync        bool
+	needSync        bool //是否需要同步数据
 
 	// keeps track of the position where we have read
 	// (but not yet sent over readChan)
-	nextReadPos     int64
-	nextReadFileNum int64
+	nextReadPos     int64 //下一次读的位置
+	nextReadFileNum int64 //下一次读的文件索引
 
 	readFile  *os.File //读文件的对象
 	writeFile *os.File //写文件的对象
@@ -171,10 +171,12 @@ func (d *diskQueue) Close() error {
 	return d.sync()
 }
 
+//关闭队列
 func (d *diskQueue) Delete() error {
 	return d.exit(true)
 }
 
+//关闭队列
 func (d *diskQueue) exit(deleted bool) error {
 	d.Lock()
 	defer d.Unlock()
@@ -273,13 +275,14 @@ func (d *diskQueue) readOne() ([]byte, error) {
 
 	if d.readFile == nil {
 		curFileName := d.fileName(d.readFileNum)
+		//打开当前读到的文件
 		d.readFile, err = os.OpenFile(curFileName, os.O_RDONLY, 0600)
 		if err != nil {
 			return nil, err
 		}
 
 		d.logf(INFO, "DISKQUEUE(%s): readOne() opened %s", d.name, curFileName)
-
+		//移动到要读的位置
 		if d.readPos > 0 {
 			_, err = d.readFile.Seek(d.readPos, 0)
 			if err != nil {
@@ -292,6 +295,7 @@ func (d *diskQueue) readOne() ([]byte, error) {
 		d.reader = bufio.NewReader(d.readFile)
 	}
 
+	//读取消息的长度(不包含这个uint32)
 	err = binary.Read(d.reader, binary.BigEndian, &msgSize)
 	if err != nil {
 		d.readFile.Close()
@@ -299,6 +303,7 @@ func (d *diskQueue) readOne() ([]byte, error) {
 		return nil, err
 	}
 
+	//检测文件是损坏
 	if msgSize < d.minMsgSize || msgSize > d.maxMsgSize {
 		// this file is corrupt and we have no reasonable guarantee on
 		// where a new message should begin
@@ -306,7 +311,7 @@ func (d *diskQueue) readOne() ([]byte, error) {
 		d.readFile = nil
 		return nil, fmt.Errorf("invalid message read size (%d)", msgSize)
 	}
-
+	//读取消息内容
 	readBuf := make([]byte, msgSize)
 	_, err = io.ReadFull(d.reader, readBuf)
 	if err != nil {
@@ -315,16 +320,19 @@ func (d *diskQueue) readOne() ([]byte, error) {
 		return nil, err
 	}
 
+	//消息和头的总长度
 	totalBytes := int64(4 + msgSize)
 
 	// we only advance next* because we have not yet sent this to consumers
 	// (where readFileNum, readPos will actually be advanced)
+	//更新下次的阅读位置
 	d.nextReadPos = d.readPos + totalBytes
 	d.nextReadFileNum = d.readFileNum
 
 	// TODO: each data file should embed the maxBytesPerFile
 	// as the first 8 bytes (at creation time) ensuring that
 	// the value can change without affecting runtime
+	//判断是否要读下个文件
 	if d.nextReadPos > d.maxBytesPerFile {
 		if d.readFile != nil {
 			d.readFile.Close()
@@ -371,11 +379,12 @@ func (d *diskQueue) writeOne(data []byte) error {
 	}
 
 	d.writeBuf.Reset()
+	//写入消息长度
 	err = binary.Write(&d.writeBuf, binary.BigEndian, dataLen)
 	if err != nil {
 		return err
 	}
-
+	//写入消息内容
 	_, err = d.writeBuf.Write(data)
 	if err != nil {
 		return err
@@ -637,6 +646,7 @@ func (d *diskQueue) ioLoop() {
 			count = 0
 		}
 
+		//没有读到写入的文件或者写入的位置可以读
 		if (d.readFileNum < d.writeFileNum) || (d.readPos < d.writePos) {
 			if d.nextReadPos == d.readPos {
 				dataRead, err = d.readOne()
