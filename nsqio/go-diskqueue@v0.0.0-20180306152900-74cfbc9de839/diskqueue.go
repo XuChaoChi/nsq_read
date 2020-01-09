@@ -181,6 +181,7 @@ func (d *diskQueue) exit(deleted bool) error {
 	d.Lock()
 	defer d.Unlock()
 
+	//置为退出状态
 	d.exitFlag = 1
 
 	if deleted {
@@ -246,7 +247,7 @@ func (d *diskQueue) skipToNextRWFile() error {
 		d.writeFile.Close()
 		d.writeFile = nil
 	}
-
+	//删除没有读取过内容的文件
 	for i := d.readFileNum; i <= d.writeFileNum; i++ {
 		fn := d.fileName(i)
 		innerErr := os.Remove(fn)
@@ -256,6 +257,7 @@ func (d *diskQueue) skipToNextRWFile() error {
 		}
 	}
 
+	//设置状态
 	d.writeFileNum++
 	d.writePos = 0
 	d.readFileNum = d.writeFileNum
@@ -580,11 +582,14 @@ func (d *diskQueue) moveForward() {
 	d.checkTailCorruption(depth)
 }
 
+//读取时的异常处理
 func (d *diskQueue) handleReadError() {
 	// jump to the next read file and rename the current (bad) file
+	//跳转到下一个阅读文件,将当前读的文件以.bad命名
 	if d.readFileNum == d.writeFileNum {
 		// if you can't properly read from the current write file it's safe to
 		// assume that something is fucked and we should skip the current file too
+		//如果是当前写的文件读取失败，直接换到下一个文件继续写
 		if d.writeFile != nil {
 			d.writeFile.Close()
 			d.writeFile = nil
@@ -593,6 +598,7 @@ func (d *diskQueue) handleReadError() {
 		d.writePos = 0
 	}
 
+	//获取坏掉的文件名
 	badFn := d.fileName(d.readFileNum)
 	badRenameFn := badFn + ".bad"
 
@@ -600,6 +606,7 @@ func (d *diskQueue) handleReadError() {
 		"DISKQUEUE(%s) jump to next file and saving bad file as %s",
 		d.name, badRenameFn)
 
+	//在文件后添加.bad后缀
 	err := os.Rename(badFn, badRenameFn)
 	if err != nil {
 		d.logf(ERROR,
@@ -607,12 +614,14 @@ func (d *diskQueue) handleReadError() {
 			d.name, badFn, badRenameFn)
 	}
 
+	//初始化下一文件的状态
 	d.readFileNum++
 	d.readPos = 0
 	d.nextReadFileNum = d.readFileNum
 	d.nextReadPos = 0
 
 	// significant state change, schedule a sync on the next iteration
+	//因为发生重大的变化，下一次迭代的时候同步元数据
 	d.needSync = true
 }
 
@@ -646,13 +655,15 @@ func (d *diskQueue) ioLoop() {
 			count = 0
 		}
 
-		//没有读到写入的文件或者写入的位置可以读
+		//读写位置合法判断
 		if (d.readFileNum < d.writeFileNum) || (d.readPos < d.writePos) {
 			if d.nextReadPos == d.readPos {
 				dataRead, err = d.readOne()
+				//读取出现异常
 				if err != nil {
 					d.logf(ERROR, "DISKQUEUE(%s) reading at %d of %s - %s",
 						d.name, d.readPos, d.fileName(d.readFileNum), err)
+					//处理读失败
 					d.handleReadError()
 					continue
 				}
@@ -685,9 +696,10 @@ func (d *diskQueue) ioLoop() {
 			goto exit
 		}
 	}
-
+	//退出ioloop
 exit:
 	d.logf(INFO, "DISKQUEUE(%s): closing ... ioLoop", d.name)
+	//停止定时器
 	syncTicker.Stop()
 	d.exitSyncChan <- 1
 }
