@@ -233,7 +233,7 @@ func (d *diskQueue) Empty() error {
 func (d *diskQueue) deleteAllFiles() error {
 	//删除数据文件
 	err := d.skipToNextRWFile()
-	//删除元数据文件
+	//删除元数据文件 
 	innerErr := os.Remove(d.metaDataFileName())
 	if innerErr != nil && !os.IsNotExist(innerErr) {
 		d.logf(ERROR, "DISKQUEUE(%s) failed to remove metadata file - %s", d.name, innerErr)
