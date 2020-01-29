@@ -72,12 +72,12 @@ type diskQueue struct {
 	// instantiation time metadata
 	name            string
 	dataPath        string		  // 文件保存的路径
-	maxBytesPerFile int64         // currently this cannot change once created
+	maxBytesPerFile int64         // currently this cannot change once created 单个文件最大存储
 	minMsgSize      int32         //消息最小值
 	maxMsgSize      int32         //消息最大值
 	syncEvery       int64         // number of writes per fsync  写入多少条数据后同步
-	syncTimeout     time.Duration // duration of time per fsync
-	exitFlag        int32
+	syncTimeout     time.Duration // duration of time per fsync	 同步时间间隔
+	exitFlag        int32		  // 标记是否退出
 	needSync        bool //是否需要同步数据
 
 	// keeps track of the position where we have read
@@ -91,7 +91,7 @@ type diskQueue struct {
 	writeBuf  bytes.Buffer
 
 	// exposed via ReadChan()
-	readChan chan []byte
+	readChan chan []byte //读取消息的chan通过ReadChan()暴露
 
 	// internal channels
 	writeChan         chan []byte
@@ -101,12 +101,12 @@ type diskQueue struct {
 	exitChan          chan int
 	exitSyncChan      chan int
 
-	logf AppLogFunc
+	logf AppLogFunc	//日志函数
 }
 
 // New instantiates an instance of diskQueue, retrieving metadata
 // from the filesystem and starting the read ahead goroutine
-//创建diskQueue的实例，并且恢复元素据，然今后进行消息循环
+//创建diskQueue的实例，并且恢复元素据，然后进行消息循环
 func New(name string, dataPath string, maxBytesPerFile int64,
 	minMsgSize int32, maxMsgSize int32,
 	syncEvery int64, syncTimeout time.Duration, logf AppLogFunc) Interface {
@@ -696,6 +696,7 @@ func (d *diskQueue) ioLoop() {
 		case r <- dataRead:
 			count++
 			// moveForward sets needSync flag if a file is removed
+			//删除已读文件，检测读取状态
 			d.moveForward()
 			//清空的消息
 		case <-d.emptyChan:
@@ -708,6 +709,7 @@ func (d *diskQueue) ioLoop() {
 		case <-syncTicker.C:
 			if count == 0 {
 				// avoid sync when there's no activity
+				//没有写入过直接跳过
 				continue
 			}
 			d.needSync = true
