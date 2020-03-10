@@ -1,5 +1,6 @@
 package nsqd
 
+//优先级队列
 type inFlightPqueue []*Message
 
 func newInFlightPqueue(capacity int) inFlightPqueue {
@@ -71,28 +72,33 @@ func (pq *inFlightPqueue) PeekAndShift(max int64) (*Message, int64) {
 	return x, 0
 }
 
-//对比父节点
+//从第j个元素自低向上（因为正向不知道从哪个开始）heapify，完成小顶堆
 func (pq *inFlightPqueue) up(j int) {
 	for {
 		i := (j - 1) / 2 // parent
+		//满足小顶堆规则
 		if i == j || (*pq)[j].pri >= (*pq)[i].pri {
 			break
 		}
-		pq.Swap(i, j)
-		j = i
+		pq.Swap(i, j)0-\
+		-*		j = i
 	}
 }
 
+//对i节点进行类似heapify的操作（小顶堆）
 func (pq *inFlightPqueue) down(i, n int) {
 	for {
 		j1 := 2*i + 1
+		//判断左孩子是否越界
 		if j1 >= n || j1 < 0 { // j1 < 0 after int overflow
 			break
 		}
 		j := j1 // left child
+		//判断左子树的pri是否>右子树的pri，取子树中pri最大节点的序号
 		if j2 := j1 + 1; j2 < n && (*pq)[j1].pri >= (*pq)[j2].pri {
 			j = j2 // = 2*i + 2  // right child
 		}
+		//子节点都比父节点大时退出循环
 		if (*pq)[j].pri >= (*pq)[i].pri {
 			break
 		}

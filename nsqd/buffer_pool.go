@@ -7,6 +7,7 @@ import (
 
 var bp sync.Pool
 
+//在main之前就会创建对象池
 func init() {
 	bp.New = func() interface{} {
 		return &bytes.Buffer{}

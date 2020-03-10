@@ -78,6 +78,7 @@ func (m *Message) WriteTo(w io.Writer) (int64, error) {
 //                        (uint16)
 //                         2-byte
 //                        attempts
+//解析消息
 func decodeMessage(b []byte) (*Message, error) {
 	var msg Message
 
@@ -94,7 +95,7 @@ func decodeMessage(b []byte) (*Message, error) {
 	return &msg, nil
 }
 
-//写数据到本地
+//将消息写入队列
 func writeMessageToBackend(buf *bytes.Buffer, msg *Message, bq BackendQueue) error {
 	buf.Reset()
 	_, err := msg.WriteTo(buf)

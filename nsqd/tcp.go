@@ -17,6 +17,7 @@ func (p *tcpServer) Handle(clientConn net.Conn) {
 	// The client should initialize itself by sending a 4 byte sequence indicating
 	// the version of the protocol that it intends to communicate, this will allow us
 	// to gracefully upgrade the protocol away from text/line oriented to whatever...
+	//客户端连接时必须发4个字节表示协议头
 	buf := make([]byte, 4)
 	_, err := io.ReadFull(clientConn, buf)
 	if err != nil {
@@ -41,6 +42,7 @@ func (p *tcpServer) Handle(clientConn net.Conn) {
 		return
 	}
 
+	//客户端进入消息循环
 	err = prot.IOLoop(clientConn)
 	if err != nil {
 		p.ctx.nsqd.logf(LOG_ERROR, "client(%s) - %s", clientConn.RemoteAddr(), err)
